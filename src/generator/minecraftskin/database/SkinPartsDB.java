@@ -8,7 +8,7 @@ public class SkinPartsDB {
 	private static final File SKIN_PARTS_DB = new File("src\\generator\\database\\skinpartsdb");
 	private static Pattern pattern = Pattern.compile("[a-zA-Z]{1,20}");
 	
-	private final File pathDB;
+	private final File fileDB;
 	
 	private File headsPathDB;
 	private File bodiesPathDB;
@@ -21,7 +21,7 @@ public class SkinPartsDB {
 			throw new IllegalArgumentException("wrong name of db");
 		}
 		
-		this.pathDB = new File(SKIN_PARTS_DB, nameOfNewDB);
+		this.fileDB = new File(SKIN_PARTS_DB, nameOfNewDB);
 		
 	}
 	
@@ -31,16 +31,30 @@ public class SkinPartsDB {
 		
 		for (int i = 0; i < files.length ; i++) {
 			
-			files[i] = new File(pathDB, dirs[i]);
+			files[i] = new File(fileDB, dirs[i]);
 			
 			files[i].mkdirs();
 		}
+	}
+	
+	public void delete() {
+		for (File dir : fileDB.listFiles()) {
+			for (File image : dir.listFiles()) {
+				image.delete();
+			}
+			
+			dir.delete();
+		}
+		
+		fileDB.delete();
 	}
 
 
 	public static void main(String...args) {
 		SkinPartsDB skinPartsDB = new SkinPartsDB("superDataBase");
+		
 		skinPartsDB.makeDB();
+		skinPartsDB.delete();
 	}
 			
 }
