@@ -24,6 +24,8 @@ public class SkinPartsDB {
 	private final File handsFileDB;
 	private final File legsFileDB;
 	
+	private final List<File> allDirs;
+	
 	public SkinPartsDB(String nameOfNewDB) {
 		if (!nameOfNewDB.matches(pattern.pattern())) {
 			throw new IllegalArgumentException("wrong name of db");
@@ -35,6 +37,12 @@ public class SkinPartsDB {
 		this.bodiesFileDB = new File(fileDB, "bodies");
 		this.handsFileDB = new File(fileDB, "hands");
 		this.legsFileDB = new File(fileDB, "legs");
+		
+		this.allDirs = Arrays.asList(headsFileDB, bodiesFileDB, handsFileDB, legsFileDB);
+	}
+	
+	public SkinPartsDB(String nameOfNewDB, List<SkinPartsDB> skinPartsDBs) {
+		this(nameOfNewDB);		
 	}
 	
 	public void makeDB() {
@@ -92,6 +100,10 @@ public class SkinPartsDB {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public MinecraftSkinPart getAllSkinParts() {
+		return null;
 	}
 
 
