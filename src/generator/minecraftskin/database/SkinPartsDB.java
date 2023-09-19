@@ -2,8 +2,11 @@ package generator.minecraftskin.database;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
@@ -19,13 +22,8 @@ public class SkinPartsDB {
 	
 	private final File fileDB;
 	
-	private final File headsFileDB;
-	private final File bodiesFileDB;
-	private final File handsFileDB;
-	private final File legsFileDB;
-	
-	private final List<File> allDirs;
-	
+	private HashMap<SkinPart, File> dirsOfDB = new HashMap<>();
+		
 	public SkinPartsDB(String nameOfNewDB) {
 		if (!nameOfNewDB.matches(pattern.pattern())) {
 			throw new IllegalArgumentException("wrong name of db");
@@ -33,23 +31,19 @@ public class SkinPartsDB {
 		
 		this.fileDB = new File(SKIN_PARTS_DB, nameOfNewDB);
 		
-		this.headsFileDB = new File(fileDB, "heads");
-		this.bodiesFileDB = new File(fileDB, "bodies");
-		this.handsFileDB = new File(fileDB, "hands");
-		this.legsFileDB = new File(fileDB, "legs");
+		var hands = new File(fileDB, "hands");
+		var legs = new File(fileDB, "legs");
 		
-		this.allDirs = Arrays.asList(headsFileDB, bodiesFileDB, handsFileDB, legsFileDB);
-	}
-	
-	public SkinPartsDB(String nameOfNewDB, List<SkinPartsDB> skinPartsDBs) {
-		this(nameOfNewDB);		
+		dirsOfDB.put(SkinPart.HEAD, new File(fileDB, "heads"));
+		dirsOfDB.put(SkinPart.BODY, new File(fileDB, "bodies"));
+		dirsOfDB.put(SkinPart.HAND1, hands);
+		dirsOfDB.put(SkinPart.HAND2, hands);
+		dirsOfDB.put(SkinPart.LEG1, legs);
+		dirsOfDB.put(SkinPart.LEG2, legs);
 	}
 	
 	public void makeDB() {
-		var files = Arrays.asList(headsFileDB, bodiesFileDB, handsFileDB,
-								legsFileDB);
-		
-		files.forEach(File::mkdirs);
+		dirsOfDB.values().forEach(File::mkdirs);
 	}
 	
 	public void delete() {
@@ -73,40 +67,52 @@ public class SkinPartsDB {
 	}
 	
 	public void saveSkinPart(MinecraftSkinPart skinPart) {
+		var dirToSave = dirsOfDB.get(skinPart.getSkinPartType());
 		try {
-			var fileToSave = new File(
-				switch (skinPart.getSkinPartType()) {
-				case HEAD -> headsFileDB.getAbsolutePath() + "\\"
-				+ headsFileDB.listFiles().length;
-				case BODY -> bodiesFileDB.getAbsolutePath() + "\\" 
-				+ bodiesFileDB.listFiles().length;
-				case HAND1 -> handsFileDB.getAbsolutePath() + "\\" 
-				+ handsFileDB.listFiles().length;
-				case HAND2 -> handsFileDB.getAbsolutePath() + "\\" 
-				+ handsFileDB.listFiles().length;
-				case LEG1 -> legsFileDB.getAbsolutePath() + "\\" 
-				+ legsFileDB.listFiles().length;
-				case LEG2 -> legsFileDB.getAbsolutePath() + "\\" 
-				+ legsFileDB.listFiles().length;
-				
-				default -> throw new IllegalArgumentException("uncorrect MinecraftSkinPart type");
-				}
-				+ ".png"
-			);
+			var newFile = new File(dirToSave, dirToSave.listFiles().length + ".png");
 			
-			fileToSave.createNewFile();
-			ImageIO.write(skinPart.getImage(), "png", fileToSave);
+			newFile.createNewFile();
+			ImageIO.write(skinPart.getImage(), "png", newFile);
 			
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 	
-	public MinecraftSkinPart getAllSkinParts() {
-		return null;
+	public List<MinecraftSkinPart> getAllSkinParts() {
+		List<MinecraftSkinPart> list = new ArrayList<>();
+		
+		try {
+			for (Entry<SkinPart, File> entry : dirsOfDB.entrySet()) {
+				for (File img : entry.getValue().listFiles()) {
+					list.add(MinecraftSkinPart.createSkinPart(ImageIO.read(img),
+							entry.getKey()));
+				}
+			}
+			return list;
+			
+		} catch (UnhandledSkinSizeException e) {
+			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 
+	public static SkinPartsDB combineIntoOne(String nameOfNewDB, SkinPartsDB... dbs) {
+		for (File db : SKIN_PARTS_DB.listFiles()) {
+			if (db.getName().equals(nameOfNewDB)) {
+				throw new IllegalArgumentException("this name of database already exists");
+			}
+		}
+		
+		var unitDB = new SkinPartsDB(nameOfNewDB);
+		
+		unitDB.makeDB();
+		Arrays.asList(dbs).forEach(db -> unitDB.saveSkinParts(db.getAllSkinParts()));
+		return unitDB;
+	}
+	
 	public static void main(String...args) throws UnhandledSkinSizeException, IOException {
 		SkinPartsDB skinPartsDB = new SkinPartsDB("superDataBase");
 		var file = new File("C:\\projects\\test_package\\deadpool.png");
@@ -116,6 +122,8 @@ public class SkinPartsDB {
 		skinPartsDB.makeDB();
 		skinPartsDB.saveSkinPart(skinPart);
 		skinPartsDB.saveSkinParts(Arrays.asList(skinPart, skinPart, skinPart));
+		
+		var skinPartsDB2 = SkinPartsDB.combineIntoOne("unitDB", skinPartsDB, skinPartsDB);
 	}
 			
 }
